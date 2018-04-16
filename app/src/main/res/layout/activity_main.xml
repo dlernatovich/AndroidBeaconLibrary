@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".MainActivity">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:orientation="vertical">
+
+        <com.artlite.bslibrary.ui.fonted.BSEditText
+            android:id="@+id/edit_minor"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="100"
+            android:hint="Beacon minor"
+            android:inputType="numberSigned" />
+
+        <com.artlite.bslibrary.ui.fonted.BSEditText
+            android:id="@+id/edit_major"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="3000"
+            android:hint="Beacon major"
+            android:inputType="numberSigned" />
+
+        <com.artlite.bslibrary.ui.fonted.BSButton
+            android:id="@+id/button_start"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Start" />
+
+        <com.artlite.bslibrary.ui.fonted.BSButton
+            android:id="@+id/button_stop"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Stop" />
+    </LinearLayout>
+
+</FrameLayout>
