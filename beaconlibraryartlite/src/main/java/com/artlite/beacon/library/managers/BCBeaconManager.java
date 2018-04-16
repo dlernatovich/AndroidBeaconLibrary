@@ -4,19 +4,28 @@ import android.annotation.SuppressLint;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseSettings;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
 import com.artlite.beacon.library.beacon.Beacon;
+import com.artlite.beacon.library.beacon.BeaconConsumer;
+import com.artlite.beacon.library.beacon.BeaconManager;
 import com.artlite.beacon.library.beacon.BeaconParser;
 import com.artlite.beacon.library.beacon.BeaconTransmitter;
+import com.artlite.beacon.library.beacon.MonitorNotifier;
+import com.artlite.beacon.library.beacon.RangeNotifier;
+import com.artlite.beacon.library.beacon.Region;
+import com.artlite.beacon.library.beacon.powersave.BackgroundPowerSaver;
 import com.artlite.beacon.library.callbacks.BCBeaconCallback;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -24,7 +33,7 @@ import java.util.Map;
 /**
  * Class which provide the beacon manager functional
  */
-public class BCBeaconManager {
+public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNotifier {
 
     // CONSTANTS
 
@@ -37,6 +46,11 @@ public class BCBeaconManager {
      * {@link String} value of the beacon Layout
      */
     protected static String K_IBEACON_LAYOUT = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
+
+    /**
+     * {@link String} value of the tag
+     */
+    protected static String K_TAG = BCBeaconManager.class.getSimpleName();
 
     // INSTANCE
 
@@ -103,9 +117,19 @@ public class BCBeaconManager {
     private BeaconParser parser;
 
     /**
+     * Instance of the {@link BeaconManager}
+     */
+    private final BeaconManager beaconManager;
+
+    /**
      * {@link Map} of the {@link WeakReference} of the {@link BCBeaconCallback}
      */
     private final Map<String, WeakReference<BCBeaconCallback>> callbacks = new HashMap<>();
+
+    /**
+     * Instance of the {@link BackgroundPowerSaver}
+     */
+    private final BackgroundPowerSaver backgroundPowerSaver;
 
     // CONSTRUCTOR
 
@@ -116,6 +140,22 @@ public class BCBeaconManager {
      */
     protected BCBeaconManager(@NonNull Context context) {
         this.contextWeakReference = new WeakReference<>(context);
+        this.beaconManager = BeaconManager.getInstanceForApplication(context);
+        this.beaconManager.bind(this);
+        this.beaconManager.addMonitorNotifier(this);
+        this.beaconManager.addRangeNotifier(this);
+        this.backgroundPowerSaver = new BackgroundPowerSaver(context);
+    }
+
+    /**
+     * Method which provide the destruction of the {@link BCBeaconManager}
+     *
+     * @throws Throwable instance of the {@link Throwable}
+     */
+    @Override
+    protected void finalize() throws Throwable {
+        this.beaconManager.unbind(this);
+        super.finalize();
     }
 
     // GET METHODS
@@ -128,7 +168,7 @@ public class BCBeaconManager {
     @Nullable
     protected Context getContext() {
         if (this.contextWeakReference != null) {
-            this.contextWeakReference.get();
+            return this.contextWeakReference.get();
         }
         return null;
     }
@@ -172,7 +212,7 @@ public class BCBeaconManager {
      * @param callback instance of the {@link BCBeaconCallback}
      * @return {@link Boolean} value of the add callback result
      */
-    protected boolean addCallbackMethod(@Nullable BCBeaconCallback callback) {
+    public boolean addCallbackMethod(@Nullable BCBeaconCallback callback) {
         try {
             this.callbacks.put(callback.getBeaconCallbackIdentifier(),
                     new WeakReference<>(callback));
@@ -187,14 +227,37 @@ public class BCBeaconManager {
     /**
      * Method which provide the start {@link Beacon}
      *
+     * @param callback instance of the {@link BCBeaconCallback}
+     */
+    @SuppressLint("NewApi")
+    public static void startBeacon(@Nullable BCBeaconCallback callback) {
+        if (instance != null) {
+            instance.startBeaconMethod(callback);
+        }
+    }
+
+    /**
+     * Method which provide the start {@link Beacon}
+     *
+     * @param callback instance of the {@link BCBeaconCallback}
+     */
+    @SuppressLint("NewApi")
+    protected void startBeaconMethod(@Nullable BCBeaconCallback callback) {
+        this.startBeaconMethod(BCRandomHelper.generateInt(0, 65535),
+                BCRandomHelper.generateInt(0, 65535), callback);
+    }
+
+    /**
+     * Method which provide the start {@link Beacon}
+     *
      * @param minor    {@link Integer} value of the minor
      * @param major    {@link Integer} value of the major
      * @param callback instance of the {@link BCBeaconCallback}
      */
     @SuppressLint("NewApi")
-    protected static void startBeacon(@IntRange(from = 0, to = 65535) int minor,
-                                      @IntRange(from = 0, to = 65535) int major,
-                                      @Nullable BCBeaconCallback callback) {
+    public static void startBeacon(@IntRange(from = 0, to = 65535) int minor,
+                                   @IntRange(from = 0, to = 65535) int major,
+                                   @Nullable BCBeaconCallback callback) {
         if (instance != null) {
             instance.startBeaconMethod(minor, major, callback);
         }
@@ -213,6 +276,17 @@ public class BCBeaconManager {
                                      @Nullable BCBeaconCallback callback) {
         // Add callback
         this.addCallbackMethod(callback);
+        if (this.transmitter != null) {
+            this.stopBeaconMethod();
+        }
+        // Check minor
+        if ((minor < 0) || (minor > 65535)) {
+            minor = BCRandomHelper.generateInt(0, 65535);
+        }
+        // Check major
+        if ((major < 0) || (major > 65535)) {
+            major = BCRandomHelper.generateInt(0, 65535);
+        }
         // UUID for beacon
         this.beacon = new Beacon.Builder().setId1(K_IBEACON_UUID)
                 // Major for beacon
@@ -231,15 +305,14 @@ public class BCBeaconManager {
                 .setBeaconLayout(K_IBEACON_LAYOUT);
         this.transmitter = new BeaconTransmitter(getContext(), this.parser);
         this.transmitter.startAdvertising(beacon, new AdvertiseCallback() {
-
             @Override
             public void onStartFailure(int error) {
-                Log.e("Tag", "Advertisement start failed with code: " + error);
+                BCBeaconManager.this.onStartFailure(error);
             }
 
             @Override
             public void onStartSuccess(AdvertiseSettings settings) {
-                Log.e("Tag", "Advertisement start succeeded.");
+                BCBeaconManager.this.onStartSuccess(settings);
             }
         });
     }
@@ -249,8 +322,252 @@ public class BCBeaconManager {
     /**
      * Method which provide the stop beacon method
      */
-    protected void stopBeaconMethod() {
-        if (this.transmitter != )
+    public static void stopBeacon() {
+        if (instance != null) {
+            instance.stopBeaconMethod();
+        }
     }
 
+    /**
+     * Method which provide the stop beacon method
+     */
+    protected void stopBeaconMethod() {
+        if (this.transmitter != null) {
+            if (this.transmitter.isStarted()) {
+                this.transmitter.stopAdvertising();
+            }
+        }
+        this.onBeaconStopped();
+        this.transmitter = null;
+        this.beacon = null;
+        this.parser = null;
+    }
+
+    // CALLBACK METHODS
+
+    /**
+     * Method which provide the on start success functional
+     *
+     * @param settings instance of the {@link AdvertiseSettings}
+     */
+    protected void onStartSuccess(@Nullable AdvertiseSettings settings) {
+        if ((this.beacon == null)
+                || (this.parser == null)
+                || (this.transmitter == null)
+                || (settings == null)) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconStartSuccess(this.beacon, this.parser, this.transmitter, settings);
+        }
+    }
+
+    /**
+     * Method which provide the on start success functional
+     *
+     * @param code instance of the {@link Integer}
+     */
+    protected void onStartFailure(int code) {
+        if ((this.beacon == null)
+                || (this.parser == null)
+                || (this.transmitter == null)) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconStartFailure(this.beacon, this.parser, this.transmitter, code);
+        }
+    }
+
+    /**
+     * Method which provide the functional when the beacon stopped
+     */
+    protected void onBeaconStopped() {
+        if ((this.beacon == null)
+                || (this.parser == null)
+                || (this.transmitter == null)) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconStopped(this.beacon, this.parser, this.transmitter);
+        }
+    }
+
+    /**
+     * Method which provide the action when the beacon enter the region
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    protected void onBeaconEnterRegion(@NonNull Region region) {
+        if (region == null) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconEnterRegion(region);
+        }
+    }
+
+    /**
+     * Method which provide the action when the beacon enter the region
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    protected void onBeaconExitRegion(@NonNull Region region) {
+        if (region == null) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconExitRegion(region);
+        }
+    }
+
+    /**
+     * Method which provide the action when the beacon enter the region
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    protected void onBeaconDetermineRegion(@NonNull Region region, int state) {
+        if (region == null) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconDetermineRegion(region, state);
+        }
+    }
+
+    /**
+     * Method which provide the action when the beacon enter the region
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    protected void onBeaconInsideRegion(@NonNull Region region,
+                                        @Nullable Collection<Beacon> beacons) {
+        if ((region == null)
+                || (beacons == null)) {
+            return;
+        }
+        if (beacons.isEmpty()) {
+            return;
+        }
+        final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
+        for (BCBeaconCallback callback : callbacks) {
+            callback.onBeaconInsideRegion(region, beacons);
+        }
+    }
+
+    // BEACON CONSUMER METHODS
+
+    /**
+     * Called when the beacon service is running and ready to accept your commands through the
+     * BeaconManager
+     */
+    @Override
+    public void onBeaconServiceConnect() {
+        this.beaconManager.getBeaconParsers().add(new BeaconParser(K_IBEACON_LAYOUT));
+        final Region region = new Region("com.artlite.beacon",
+                null, null, null);
+        try {
+            this.beaconManager.startRangingBeaconsInRegion(region);
+            this.beaconManager.startMonitoringBeaconsInRegion(region);
+        } catch (Exception ex) {
+            Log.e(K_TAG, ex.toString());
+        }
+    }
+
+    /**
+     * Called by the BeaconManager to get the context of your Service or Activity.
+     * This method is implemented by Service or Activity.
+     * You generally should not override it.
+     *
+     * @return the application context of your service or activity
+     */
+    @Override
+    public Context getApplicationContext() {
+        return getContext();
+    }
+
+    /**
+     * Called by the BeaconManager to unbind your BeaconConsumer to the  BeaconService.
+     * This method is implemented by Service or Activity, and
+     * You generally should not override it.
+     *
+     * @param connection
+     * @return the application context of your service or activity
+     */
+    @Override
+    public void unbindService(ServiceConnection connection) {
+
+    }
+
+    /**
+     * Called by the BeaconManager to bind your BeaconConsumer to the  BeaconService.
+     * This method is implemented by Service or Activity, and
+     * You generally should not override it.
+     *
+     * @param intent
+     * @param connection
+     * @param mode
+     * @return the application context of your service or activity
+     */
+    @Override
+    public boolean bindService(Intent intent, ServiceConnection connection, int mode) {
+        return false;
+    }
+
+    // MONITOR NOTIFIER
+
+    /**
+     * Called when at least one beacon in a <code>Region</code> is visible.
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    @Override
+    public void didEnterRegion(Region region) {
+        this.onBeaconEnterRegion(region);
+    }
+
+    /**
+     * Called when no beacons in a <code>Region</code> are visible.
+     *
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    @Override
+    public void didExitRegion(Region region) {
+        this.onBeaconExitRegion(region);
+    }
+
+    /**
+     * Called with a state value of MonitorNotifier.INSIDE when at least one
+     * beacon in a <code>Region</code> is visible.
+     * Called with a state value of MonitorNotifier.OUTSIDE when no beacons in
+     * a <code>Region</code> are visible.
+     *
+     * @param state  either MonitorNotifier.INSIDE or MonitorNotifier.OUTSIDE
+     * @param region a Region that defines the criteria of beacons to look for
+     */
+    @Override
+    public void didDetermineStateForRegion(int state, Region region) {
+        this.onBeaconDetermineRegion(region, state);
+    }
+
+    // RANGE NOTIFIER
+
+    /**
+     * Called once per second to give an estimate of the mDistance to visible beacons
+     *
+     * @param beacons a collection of <code>Beacon<code> objects that have been
+     *                seen in the past second
+     * @param region  the <code>Region</code> object that defines the criteria
+     *                for the ranged beacons
+     */
+    @Override
+    public void didRangeBeaconsInRegion(Collection<Beacon> beacons,
+                                        Region region) {
+        this.onBeaconInsideRegion(region, beacons);
+    }
 }

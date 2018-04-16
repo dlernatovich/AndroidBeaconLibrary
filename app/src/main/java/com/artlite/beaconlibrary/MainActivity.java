@@ -5,6 +5,7 @@ import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseSettings;
 import android.os.Build;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.util.Log;
@@ -13,17 +14,18 @@ import android.view.View;
 import com.artlite.beacon.library.beacon.Beacon;
 import com.artlite.beacon.library.beacon.BeaconParser;
 import com.artlite.beacon.library.beacon.BeaconTransmitter;
+import com.artlite.beacon.library.beacon.Region;
+import com.artlite.beacon.library.callbacks.BCBeaconCallback;
+import com.artlite.beacon.library.managers.BCBeaconManager;
 import com.artlite.bslibrary.annotations.FindViewBy;
+import com.artlite.bslibrary.helpers.log.BSLogHelper;
 import com.artlite.bslibrary.ui.activity.BSActivity;
 import com.artlite.bslibrary.ui.fonted.BSEditText;
 
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Collections;
 import java.util.UUID;
-
-//import Beacon;
-//import BeaconManager;
-//import BeaconParser;
-//import BeaconTransmitter;
 
 public class MainActivity extends BSActivity {
 
@@ -104,38 +106,142 @@ public class MainActivity extends BSActivity {
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void startBeacon() {
-        final String generatedUUID = UUID.randomUUID().toString();
-        Beacon beacon = new Beacon.Builder().setId1("2f234454-cf6d-4a0f-adf2-f4911ba9ffa6") // UUID for beacon
-                .setId2(this.editMajor.getStringValue()) // Major for beacon
-                .setId3(this.editMinor.getStringValue()) // Minor for beacon
-                .setManufacturer(0x004C) // Radius Networks.0x0118  Change this for other beacon layouts//0x004C for iPhone
-                .setTxPower(-56) // Power in dB
-                .setDataFields(Arrays.asList(new Long[]{0l})) // Remove this for beacon layouts without d: fields
-                .build();
-
-//        "2f234454-cf6d-4a0f-adf2-f4911ba9ffa6"
-
-        BeaconParser beaconParser = new BeaconParser()
-                .setBeaconLayout("m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24");
-        this.transmitter = new BeaconTransmitter(getApplicationContext(), beaconParser);
-        this.transmitter.startAdvertising(beacon, new AdvertiseCallback() {
-
-            @Override
-            public void onStartFailure(int errorCode) {
-                Log.e("Tag", "Advertisement start failed with code: " + errorCode);
-            }
-
-            @Override
-            public void onStartSuccess(AdvertiseSettings settingsInEffect) {
-                Log.e("Tag", "Advertisement start succeeded.");
-            }
-        });
+        BCBeaconManager.startBeacon(this.beaconCallback);
     }
 
     /**
      * Method which provide the beacon stop
      */
     protected void stopBeacon() {
-//        this.transmitter.stopAdvertising();
+        BCBeaconManager.stopBeacon();
     }
+
+    /**
+     * Instance of the {@link BCBeaconCallback}
+     */
+    private final BCBeaconCallback beaconCallback = new BCBeaconCallback() {
+
+        /**
+         * {@link String} value of the beacon identifier
+         *
+         * @return {@link String} value of the beacon identifier
+         */
+        @NonNull
+        @Override
+        public String getBeaconCallbackIdentifier() {
+            return MainActivity.class.getSimpleName();
+        }
+
+        /**
+         * Method which provide the action when the beacon start is failure
+         *
+         * @param beacon      instance of the {@link Beacon}
+         * @param parser      instance of the {@link BeaconParser}
+         * @param transmitter instance of the {@link BeaconTransmitter}
+         * @param errorCode   {@link Integer} value of the error code
+         */
+        @Override
+        public void onBeaconStartFailure(@NonNull Beacon beacon,
+                                         @NonNull BeaconParser parser,
+                                         @NonNull BeaconTransmitter transmitter,
+                                         int errorCode) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconStartFailure",
+                    null,
+                    "Error code: " + errorCode);
+        }
+
+        /**
+         * Method which provide the action when the beacon start is failure
+         *
+         * @param beacon      instance of the {@link Beacon}
+         * @param parser      instance of the {@link BeaconParser}
+         * @param transmitter instance of the {@link BeaconTransmitter}
+         * @param settings    instance of the {@link AdvertiseSettings}
+         */
+        @Override
+        public void onBeaconStartSuccess(@NonNull Beacon beacon,
+                                         @NonNull BeaconParser parser,
+                                         @NonNull BeaconTransmitter transmitter,
+                                         @NonNull AdvertiseSettings settings) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconStartSuccess",
+                    null,
+                    settings);
+
+        }
+
+        /**
+         * Method which provide the action when the beacon was stopped
+         *
+         * @param beacon      instance of the {@link Beacon}
+         * @param parser      instance of the {@link BeaconParser}
+         * @param transmitter instance of the {@link BeaconTransmitter}
+         */
+        @Override
+        public void onBeaconStopped(@NonNull Beacon beacon,
+                                    @NonNull BeaconParser parser,
+                                    @NonNull BeaconTransmitter transmitter) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconStopped",
+                    null,
+                    beacon);
+        }
+
+        /**
+         * Method which provide the action when the beacon enter region
+         *
+         * @param region instance of the {@link Region}
+         */
+        @Override
+        public void onBeaconEnterRegion(@NonNull Region region) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconEnterRegion",
+                    null,
+                    region);
+        }
+
+        /**
+         * Method which provide the action when the beacon exit region
+         *
+         * @param region instance of the {@link Region}
+         */
+        @Override
+        public void onBeaconExitRegion(@NonNull Region region) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconExitRegion",
+                    null,
+                    region);
+        }
+
+        /**
+         * Method which provide the action when the beacon exit region
+         *
+         * @param region instance of the {@link Region}
+         * @param state  {@link Integer} value of the state, could be MonitorNotifier.INSIDE
+         */
+        @Override
+        public void onBeaconDetermineRegion(@NonNull Region region, int state) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconDetermineRegion",
+                    null,
+                    region);
+        }
+
+        /**
+         * Method which provide the action when the beacons found in region
+         *
+         * @param region  instance of the {@link Region}
+         * @param beacons {@link Collections} of the {@link Beacon}
+         */
+        @Override
+        public void onBeaconInsideRegion(@NonNull Region region,
+                                         @NonNull Collection<Beacon> beacons) {
+            BSLogHelper.log(MainActivity.this,
+                    "onBeaconInsideRegion",
+                    null,
+                    beacons);
+        }
+
+    };
 }
