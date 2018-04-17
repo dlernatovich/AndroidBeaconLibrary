@@ -81,11 +81,15 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     protected static String K_EDDYSTONE_URL_LAYOUT = "s:0-1=feaa,m:2-2=10,p:3-3:-41,i:4-20v";
 
-
     /**
      * {@link String} value of the tag
      */
     protected static String K_TAG = BCBeaconManager.class.getSimpleName();
+
+    /**
+     * {@link String} value of the ibeacon unique ID
+     */
+    protected static String K_IBEACON_UNIQUE_ID = "FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF";
 
     // INSTANCE
 
@@ -578,7 +582,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     @Override
     public void onBeaconServiceConnect() {
         Log.e(K_TAG, "onBeaconServiceConnect");
-        final Region region = new Region("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
+        final Region region = new Region(K_IBEACON_UNIQUE_ID,
                 null, null, null);
         try {
             this.beaconManager.startRangingBeaconsInRegion(region);
