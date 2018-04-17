@@ -1,31 +1,27 @@
 package com.artlite.beaconlibrary;
 
 import android.annotation.SuppressLint;
-import android.bluetooth.le.AdvertiseCallback;
-import android.bluetooth.le.AdvertiseSettings;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
-import android.util.Log;
 import android.view.View;
 
 import com.artlite.beacon.library.beacon.Beacon;
-import com.artlite.beacon.library.beacon.BeaconParser;
 import com.artlite.beacon.library.beacon.BeaconTransmitter;
 import com.artlite.beacon.library.beacon.Region;
 import com.artlite.beacon.library.callbacks.BCBeaconCallback;
+import com.artlite.beacon.library.callbacks.BCBeaconRegionCallback;
+import com.artlite.beacon.library.callbacks.BCPermissionCallback;
 import com.artlite.beacon.library.managers.BCBeaconManager;
 import com.artlite.bslibrary.annotations.FindViewBy;
 import com.artlite.bslibrary.helpers.log.BSLogHelper;
 import com.artlite.bslibrary.ui.activity.BSActivity;
 import com.artlite.bslibrary.ui.fonted.BSEditText;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.UUID;
 
 public class MainActivity extends BSActivity {
 
@@ -76,6 +72,7 @@ public class MainActivity extends BSActivity {
     @Override
     protected void onActivityPostCreation(@Nullable Bundle bundle) {
         setOnClickListeners(R.id.button_start, R.id.button_stop);
+        BCBeaconManager.addCallback(this.beaconCallback);
     }
 
     /**
@@ -106,7 +103,12 @@ public class MainActivity extends BSActivity {
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void startBeacon() {
-        BCBeaconManager.startBeacon(this.beaconCallback);
+        BCBeaconManager.requestPermissions(this, new BCPermissionCallback() {
+            @Override
+            public void onPermissionGranted() {
+                BCBeaconManager.startBeacon();
+            }
+        });
     }
 
     /**
@@ -119,7 +121,7 @@ public class MainActivity extends BSActivity {
     /**
      * Instance of the {@link BCBeaconCallback}
      */
-    private final BCBeaconCallback beaconCallback = new BCBeaconCallback() {
+    private final BCBeaconRegionCallback beaconCallback = new BCBeaconRegionCallback() {
 
         /**
          * {@link String} value of the beacon identifier
@@ -133,110 +135,13 @@ public class MainActivity extends BSActivity {
         }
 
         /**
-         * Method which provide the action when the beacon start is failure
-         *
-         * @param beacon      instance of the {@link Beacon}
-         * @param parser      instance of the {@link BeaconParser}
-         * @param transmitter instance of the {@link BeaconTransmitter}
-         * @param errorCode   {@link Integer} value of the error code
-         */
-        @Override
-        public void onBeaconStartFailure(@NonNull Beacon beacon,
-                                         @NonNull BeaconParser parser,
-                                         @NonNull BeaconTransmitter transmitter,
-                                         int errorCode) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconStartFailure",
-                    null,
-                    "Error code: " + errorCode);
-        }
-
-        /**
-         * Method which provide the action when the beacon start is failure
-         *
-         * @param beacon      instance of the {@link Beacon}
-         * @param parser      instance of the {@link BeaconParser}
-         * @param transmitter instance of the {@link BeaconTransmitter}
-         * @param settings    instance of the {@link AdvertiseSettings}
-         */
-        @Override
-        public void onBeaconStartSuccess(@NonNull Beacon beacon,
-                                         @NonNull BeaconParser parser,
-                                         @NonNull BeaconTransmitter transmitter,
-                                         @NonNull AdvertiseSettings settings) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconStartSuccess",
-                    null,
-                    settings);
-
-        }
-
-        /**
-         * Method which provide the action when the beacon was stopped
-         *
-         * @param beacon      instance of the {@link Beacon}
-         * @param parser      instance of the {@link BeaconParser}
-         * @param transmitter instance of the {@link BeaconTransmitter}
-         */
-        @Override
-        public void onBeaconStopped(@NonNull Beacon beacon,
-                                    @NonNull BeaconParser parser,
-                                    @NonNull BeaconTransmitter transmitter) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconStopped",
-                    null,
-                    beacon);
-        }
-
-        /**
-         * Method which provide the action when the beacon enter region
-         *
-         * @param region instance of the {@link Region}
-         */
-        @Override
-        public void onBeaconEnterRegion(@NonNull Region region) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconEnterRegion",
-                    null,
-                    region);
-        }
-
-        /**
-         * Method which provide the action when the beacon exit region
-         *
-         * @param region instance of the {@link Region}
-         */
-        @Override
-        public void onBeaconExitRegion(@NonNull Region region) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconExitRegion",
-                    null,
-                    region);
-        }
-
-        /**
-         * Method which provide the action when the beacon exit region
-         *
-         * @param region instance of the {@link Region}
-         * @param state  {@link Integer} value of the state, could be MonitorNotifier.INSIDE
-         */
-        @Override
-        public void onBeaconDetermineRegion(@NonNull Region region, int state) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconDetermineRegion",
-                    null,
-                    region);
-        }
-
-        /**
          * Method which provide the action when the beacons found in region
          *
          * @param region  instance of the {@link Region}
          * @param beacons {@link Collections} of the {@link Beacon}
          */
         @Override
-        public void onBeaconInsideRegion(@NonNull Region region,
-                                         @NonNull Collection<Beacon> beacons) {
+        public void onBeaconInsideRegion(@NonNull Region region, @NonNull Collection<Beacon> beacons) {
             BSLogHelper.log(MainActivity.this,
                     "onBeaconInsideRegion",
                     null,

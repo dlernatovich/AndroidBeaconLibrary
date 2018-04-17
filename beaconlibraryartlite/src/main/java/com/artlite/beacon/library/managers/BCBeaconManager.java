@@ -1,6 +1,8 @@
 package com.artlite.beacon.library.managers;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
+import android.app.Activity;
 import android.bluetooth.le.AdvertiseCallback;
 import android.bluetooth.le.AdvertiseSettings;
 import android.content.Context;
@@ -21,14 +23,17 @@ import com.artlite.beacon.library.beacon.RangeNotifier;
 import com.artlite.beacon.library.beacon.Region;
 import com.artlite.beacon.library.beacon.powersave.BackgroundPowerSaver;
 import com.artlite.beacon.library.callbacks.BCBeaconCallback;
+import com.artlite.beacon.library.callbacks.BCPermissionCallback;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Class which provide the beacon manager functional
@@ -46,6 +51,32 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      * {@link String} value of the beacon Layout
      */
     protected static String K_IBEACON_LAYOUT = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24";
+
+    /**
+     * {@link String} value of the beacon Layout
+     */
+    protected static String K_ALTBEACON_LAYOUT = "m:2-3=beac,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25";
+
+    /**
+     * {@link String} value of the beacon Layout
+     */
+    protected static String K_ALTBEACON2_LAYOUT = "m:2-3=0215,i:4-19,i:20-21,i:22-23,p:24-24,d:25-25";
+
+    /**
+     * {@link String} value of the beacon Layout
+     */
+    protected static String K_EDDYSTONE_TLM_LAYOUT = "x,s:0-1=feaa,m:2-2=20,d:3-3,d:4-5,d:6-7,d:8-11,d:12-15";
+
+    /**
+     * {@link String} value of the beacon Layout
+     */
+    protected static String K_EDDYSTONE_UID_LAYOUT = "s:0-1=feaa,m:2-2=00,p:3-3:-41,i:4-13,i:14-19";
+
+    /**
+     * {@link String} value of the beacon Layout
+     */
+    protected static String K_EDDYSTONE_URL_LAYOUT = "s:0-1=feaa,m:2-2=10,p:3-3:-41,i:4-20v";
+
 
     /**
      * {@link String} value of the tag
@@ -131,6 +162,11 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     private final BackgroundPowerSaver backgroundPowerSaver;
 
+    /**
+     * Instance of the {@link Set}
+     */
+    private Set<Beacon> beacons = new HashSet<>();
+
     // CONSTRUCTOR
 
     /**
@@ -141,6 +177,20 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     protected BCBeaconManager(@NonNull Context context) {
         this.contextWeakReference = new WeakReference<>(context);
         this.beaconManager = BeaconManager.getInstanceForApplication(context);
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(BeaconParser.ALTBEACON_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(K_ALTBEACON2_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(BeaconParser.EDDYSTONE_TLM_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(BeaconParser.EDDYSTONE_UID_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(BeaconParser.EDDYSTONE_URL_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(K_IBEACON_LAYOUT));
+        this.beaconManager.getBeaconParsers().add(new BeaconParser()
+                .setBeaconLayout(BeaconParser.URI_BEACON_LAYOUT));
         this.beaconManager.bind(this);
         this.beaconManager.addMonitorNotifier(this);
         this.beaconManager.addRangeNotifier(this);
@@ -223,6 +273,14 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     }
 
     // START BEACON
+
+    /**
+     * Method which provide the start {@link Beacon}
+     */
+    @SuppressLint("NewApi")
+    public static void startBeacon() {
+        startBeacon(null);
+    }
 
     /**
      * Method which provide the start {@link Beacon}
@@ -343,6 +401,37 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         this.parser = null;
     }
 
+    // PERMISSION CALLBACK
+
+    /**
+     * Method which provide the permission requests
+     *
+     * @param activity instance of the {@link Activity}
+     * @param callback instance of the {@link BCPermissionCallback}
+     */
+    public static void requestPermissions(@Nullable Activity activity,
+                                          @Nullable BCPermissionCallback callback) {
+        if (instance != null) {
+            instance.requestPermissionsMethod(activity, callback);
+        }
+    }
+
+    /**
+     * Method which provide the permission requests
+     *
+     * @param activity instance of the {@link Activity}
+     * @param callback instance of the {@link BCPermissionCallback}
+     */
+    protected void requestPermissionsMethod(@Nullable Activity activity,
+                                            @Nullable BCPermissionCallback callback) {
+        BCPermissionHelper.requestPermissions(activity, callback,
+                Manifest.permission.ACCESS_COARSE_LOCATION,
+                Manifest.permission.BLUETOOTH,
+                Manifest.permission.BLUETOOTH_ADMIN,
+                Manifest.permission.INTERNET,
+                Manifest.permission.RECEIVE_BOOT_COMPLETED);
+    }
+
     // CALLBACK METHODS
 
     /**
@@ -454,6 +543,13 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         if (beacons.isEmpty()) {
             return;
         }
+        int oldSize = this.beacons.size();
+        int newSize = oldSize;
+        this.beacons.addAll(beacons);
+        newSize = this.beacons.size();
+        if (oldSize == newSize) {
+            return;
+        }
         final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
         for (BCBeaconCallback callback : callbacks) {
             callback.onBeaconInsideRegion(region, beacons);
@@ -468,8 +564,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     @Override
     public void onBeaconServiceConnect() {
-        this.beaconManager.getBeaconParsers().add(new BeaconParser(K_IBEACON_LAYOUT));
-        final Region region = new Region("com.artlite.beacon",
+        final Region region = new Region("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
                 null, null, null);
         try {
             this.beaconManager.startRangingBeaconsInRegion(region);
@@ -569,5 +664,19 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     public void didRangeBeaconsInRegion(Collection<Beacon> beacons,
                                         Region region) {
         this.onBeaconInsideRegion(region, beacons);
+    }
+
+    // GET BEACONS
+
+    /**
+     * Method which provide the getting {@link Beacon}
+     *
+     * @return instance of the {@link Beacon}
+     */
+    public Set<Beacon> getBeacons() {
+        if (beacons == null) {
+            beacons = new HashSet<>();
+        }
+        return beacons;
     }
 }
