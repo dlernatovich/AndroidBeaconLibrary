@@ -3,25 +3,15 @@ package com.artlite.beaconlibrary;
 import android.annotation.SuppressLint;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.view.View;
 
-import com.artlite.beacon.library.beacon.Beacon;
 import com.artlite.beacon.library.beacon.BeaconTransmitter;
-import com.artlite.beacon.library.beacon.Region;
-import com.artlite.beacon.library.callbacks.BCBeaconCallback;
-import com.artlite.beacon.library.callbacks.BCBeaconRegionCallback;
-import com.artlite.beacon.library.callbacks.BCPermissionCallback;
 import com.artlite.beacon.library.managers.BCBeaconManager;
 import com.artlite.bslibrary.annotations.FindViewBy;
-import com.artlite.bslibrary.helpers.log.BSLogHelper;
 import com.artlite.bslibrary.ui.activity.BSActivity;
 import com.artlite.bslibrary.ui.fonted.BSEditText;
-
-import java.util.Collection;
-import java.util.Collections;
 
 public class MainActivity extends BSActivity {
 
@@ -72,7 +62,7 @@ public class MainActivity extends BSActivity {
     @Override
     protected void onActivityPostCreation(@Nullable Bundle bundle) {
         setOnClickListeners(R.id.button_start, R.id.button_stop);
-        BCBeaconManager.addCallback(this.beaconCallback);
+        BCBeaconManager.requestPermissions(this);
     }
 
     /**
@@ -103,12 +93,7 @@ public class MainActivity extends BSActivity {
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void startBeacon() {
-        BCBeaconManager.requestPermissions(this, new BCPermissionCallback() {
-            @Override
-            public void onPermissionGranted() {
-                BCBeaconManager.startBeacon();
-            }
-        });
+        BCBeaconManager.startBeacon();
     }
 
     /**
@@ -118,35 +103,35 @@ public class MainActivity extends BSActivity {
         BCBeaconManager.stopBeacon();
     }
 
-    /**
-     * Instance of the {@link BCBeaconCallback}
-     */
-    private final BCBeaconRegionCallback beaconCallback = new BCBeaconRegionCallback() {
-
-        /**
-         * {@link String} value of the beacon identifier
-         *
-         * @return {@link String} value of the beacon identifier
-         */
-        @NonNull
-        @Override
-        public String getBeaconCallbackIdentifier() {
-            return MainActivity.class.getSimpleName();
-        }
-
-        /**
-         * Method which provide the action when the beacons found in region
-         *
-         * @param region  instance of the {@link Region}
-         * @param beacons {@link Collections} of the {@link Beacon}
-         */
-        @Override
-        public void onBeaconInsideRegion(@NonNull Region region, @NonNull Collection<Beacon> beacons) {
-            BSLogHelper.log(MainActivity.this,
-                    "onBeaconInsideRegion",
-                    null,
-                    beacons);
-        }
-
-    };
+//    /**
+//     * Instance of the {@link BCBeaconCallback}
+//     */
+//    private final BCBeaconRegionCallback beaconCallback = new BCBeaconRegionCallback() {
+//
+//        /**
+//         * {@link String} value of the beacon identifier
+//         *
+//         * @return {@link String} value of the beacon identifier
+//         */
+//        @NonNull
+//        @Override
+//        public String getBeaconCallbackIdentifier() {
+//            return MainActivity.class.getSimpleName();
+//        }
+//
+//        /**
+//         * Method which provide the action when the beacons found in region
+//         *
+//         * @param region  instance of the {@link Region}
+//         * @param beacons {@link Collections} of the {@link Beacon}
+//         */
+//        @Override
+//        public void onBeaconInsideRegion(@NonNull Region region, @NonNull Collection<Beacon> beacons) {
+//            BSLogHelper.log(MainActivity.this,
+//                    "onBeaconInsideRegion",
+//                    null,
+//                    beacons);
+//        }
+//
+//    };
 }

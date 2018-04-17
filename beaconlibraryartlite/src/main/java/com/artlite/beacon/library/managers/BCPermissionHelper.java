@@ -26,7 +26,6 @@ final class BCPermissionHelper {
                                           @Nullable final BCPermissionCallback callback,
                                           @Nullable final String... permissions) {
         if ((activity != null)
-                && (callback != null)
                 && (permissions != null)
                 && (permissions.length > 0)) {
             List<String> ungrandedPermissions = new ArrayList<>();
@@ -65,7 +64,9 @@ final class BCPermissionHelper {
             }
 
             if ((unableToGrand.size() == 0) && (ableToGrand.size() == 0)) {
-                callback.onPermissionGranted();
+                if (callback != null) {
+                    callback.onPermissionGranted();
+                }
             }
         }
     }

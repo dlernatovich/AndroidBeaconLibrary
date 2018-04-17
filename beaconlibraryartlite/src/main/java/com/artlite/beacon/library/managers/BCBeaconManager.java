@@ -37,6 +37,10 @@ import java.util.Set;
 
 /**
  * Class which provide the beacon manager functional
+ * HOW TO USE
+ * 1. In application singleton add the BCBeaconManager.init(context: this);
+ * In the launch activity
+ * 1. Add in on create the method lines: BCBeaconManager.requestPermissions(this);
  */
 public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNotifier {
 
@@ -407,6 +411,15 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      * Method which provide the permission requests
      *
      * @param activity instance of the {@link Activity}
+     */
+    public static void requestPermissions(@Nullable Activity activity) {
+        requestPermissions(activity, null);
+    }
+
+    /**
+     * Method which provide the permission requests
+     *
+     * @param activity instance of the {@link Activity}
      * @param callback instance of the {@link BCPermissionCallback}
      */
     public static void requestPermissions(@Nullable Activity activity,
@@ -425,11 +438,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     protected void requestPermissionsMethod(@Nullable Activity activity,
                                             @Nullable BCPermissionCallback callback) {
         BCPermissionHelper.requestPermissions(activity, callback,
-                Manifest.permission.ACCESS_COARSE_LOCATION,
-                Manifest.permission.BLUETOOTH,
-                Manifest.permission.BLUETOOTH_ADMIN,
-                Manifest.permission.INTERNET,
-                Manifest.permission.RECEIVE_BOOT_COMPLETED);
+                Manifest.permission.ACCESS_COARSE_LOCATION);
     }
 
     // CALLBACK METHODS
@@ -493,6 +502,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         if (region == null) {
             return;
         }
+        Log.e(K_TAG, "onBeaconEnterRegion " + region);
         final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
         for (BCBeaconCallback callback : callbacks) {
             callback.onBeaconEnterRegion(region);
@@ -508,6 +518,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         if (region == null) {
             return;
         }
+        Log.e(K_TAG, "onBeaconExitRegion " + region);
         final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
         for (BCBeaconCallback callback : callbacks) {
             callback.onBeaconExitRegion(region);
@@ -523,6 +534,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         if (region == null) {
             return;
         }
+        Log.e(K_TAG, "onBeaconDetermineRegion " + region);
         final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
         for (BCBeaconCallback callback : callbacks) {
             callback.onBeaconDetermineRegion(region, state);
@@ -550,6 +562,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         if (oldSize == newSize) {
             return;
         }
+        Log.e(K_TAG, "onBeaconInsideRegion " + beacons);
         final List<BCBeaconCallback> callbacks = this.getExistsCallbacks();
         for (BCBeaconCallback callback : callbacks) {
             callback.onBeaconInsideRegion(region, beacons);
@@ -564,6 +577,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     @Override
     public void onBeaconServiceConnect() {
+        Log.e(K_TAG, "onBeaconServiceConnect");
         final Region region = new Region("FFFFFFFF-FFFF-FFFF-FFFF-FFFFFFFFFFFF",
                 null, null, null);
         try {
@@ -583,6 +597,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     @Override
     public Context getApplicationContext() {
+        Log.e(K_TAG, "getApplicationContext");
         return getContext();
     }
 
@@ -596,7 +611,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     @Override
     public void unbindService(ServiceConnection connection) {
-
+        Log.e(K_TAG, "unbindService");
     }
 
     /**
@@ -611,6 +626,7 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     @Override
     public boolean bindService(Intent intent, ServiceConnection connection, int mode) {
+        Log.e(K_TAG, "bindService");
         return false;
     }
 
