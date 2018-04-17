@@ -5,7 +5,7 @@ android {
     defaultConfig {
         applicationId "com.artlite.beaconlibrary"
         minSdkVersion 16
-        targetSdkVersion 27
+        targetSdkVersion 23
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -15,6 +15,9 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
+    }
+    lintOptions {
+        abortOnError false
     }
 }
 
@@ -36,16 +39,13 @@ repositories {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'com.android.support.constraint:constraint-layout:1.1.0'
+
     // Artlite libraries
     implementation 'com.artlite:sqlib:1.6'
     implementation 'com.artlite:baseproject:2.2'
     implementation 'com.artlite:adapteredrecyclerview:1.5'
-
     implementation project(path: ':beaconlibraryartlite')
 
 
     testImplementation 'junit:junit:4.12'
-    androidTestImplementation 'com.android.support.test:runner:1.0.1'
-    androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 }
