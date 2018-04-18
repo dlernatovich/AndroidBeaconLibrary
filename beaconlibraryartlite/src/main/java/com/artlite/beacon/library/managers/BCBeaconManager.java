@@ -8,22 +8,26 @@ import android.bluetooth.le.AdvertiseSettings;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.support.annotation.IntRange;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.artlite.beacon.library.beacon.Beacon;
-import com.artlite.beacon.library.beacon.BeaconConsumer;
-import com.artlite.beacon.library.beacon.BeaconManager;
-import com.artlite.beacon.library.beacon.BeaconParser;
-import com.artlite.beacon.library.beacon.BeaconTransmitter;
-import com.artlite.beacon.library.beacon.MonitorNotifier;
-import com.artlite.beacon.library.beacon.RangeNotifier;
-import com.artlite.beacon.library.beacon.Region;
-import com.artlite.beacon.library.beacon.powersave.BackgroundPowerSaver;
 import com.artlite.beacon.library.callbacks.BCBeaconCallback;
 import com.artlite.beacon.library.callbacks.BCPermissionCallback;
+
+import org.altbeacon.beacon.Beacon;
+import org.altbeacon.beacon.BeaconConsumer;
+import org.altbeacon.beacon.BeaconManager;
+import org.altbeacon.beacon.BeaconParser;
+import org.altbeacon.beacon.BeaconTransmitter;
+import org.altbeacon.beacon.MonitorNotifier;
+import org.altbeacon.beacon.RangeNotifier;
+import org.altbeacon.beacon.Region;
+import org.altbeacon.beacon.powersave.BackgroundPowerSaver;
+import org.altbeacon.beacon.startup.BootstrapNotifier;
+import org.altbeacon.beacon.startup.RegionBootstrap;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
@@ -42,7 +46,11 @@ import java.util.Set;
  * In the launch activity
  * 1. Add in on create the method lines: BCBeaconManager.requestPermissions(this);
  */
-public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNotifier {
+public class BCBeaconManager
+        implements BeaconConsumer,
+        MonitorNotifier,
+        RangeNotifier,
+        BootstrapNotifier {
 
     // CONSTANTS
 
@@ -175,6 +183,11 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      */
     private Set<Beacon> beacons = new HashSet<>();
 
+    /**
+     * Instance of the {@link RegionBootstrap}
+     */
+    private RegionBootstrap regionBootstrap;
+
     // CONSTRUCTOR
 
     /**
@@ -183,7 +196,10 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
      * @param context instance of the {@link Context}
      */
     protected BCBeaconManager(@NonNull Context context) {
+        this.getIncompatibilityReason(context);
         this.contextWeakReference = new WeakReference<>(context);
+        this.regionBootstrap = new RegionBootstrap(this,
+                new Region("background", null, null, null));
         this.beaconManager = BeaconManager.getInstanceForApplication(context);
         // Set up parsers
         this.beaconManager.getBeaconParsers().clear();
@@ -587,12 +603,13 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         final Region region = new Region(K_IBEACON_UNIQUE_ID,
                 null, null, null);
         try {
-            this.beaconManager.startRangingBeaconsInRegion(region);
-            this.beaconManager.startMonitoringBeaconsInRegion(region);
             this.beaconManager.setBackgroundBetweenScanPeriod(5000l);
             this.beaconManager.setForegroundBetweenScanPeriod(5000l);
             this.beaconManager.setForegroundScanPeriod(1100l);
             this.beaconManager.setBackgroundScanPeriod(1100l);
+            this.beaconManager.setBackgroundMode(true);
+            this.beaconManager.startRangingBeaconsInRegion(region);
+            this.beaconManager.startMonitoringBeaconsInRegion(region);
         } catch (Exception ex) {
             Log.e(K_TAG, ex.toString());
         }
@@ -704,5 +721,18 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
             beacons = new HashSet<>();
         }
         return beacons;
+    }
+
+    // GET UNSUPORTED REASON
+    public boolean getIncompatibilityReason(Context context) {
+        if (android.os.Build.VERSION.SDK_INT < 18) {
+            Log.e(K_TAG, "requires Android 4.3");
+            return false;
+        }
+        if (!context.getPackageManager().hasSystemFeature(PackageManager.FEATURE_BLUETOOTH_LE)) {
+            Log.e(K_TAG, "requires Bluetooth LE");
+            return false;
+        }
+        return true;
     }
 }

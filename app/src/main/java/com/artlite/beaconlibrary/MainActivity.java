@@ -7,7 +7,6 @@ import android.support.annotation.Nullable;
 import android.support.annotation.RequiresApi;
 import android.view.View;
 
-import com.artlite.beacon.library.beacon.BeaconTransmitter;
 import com.artlite.beacon.library.managers.BCBeaconManager;
 import com.artlite.bslibrary.annotations.FindViewBy;
 import com.artlite.bslibrary.ui.activity.BSActivity;
@@ -26,11 +25,6 @@ public class MainActivity extends BSActivity {
      */
     @FindViewBy(id = R.id.edit_major)
     private BSEditText editMajor;
-
-    /**
-     * Instance of the {@link BeaconTransmitter}
-     */
-    private BeaconTransmitter transmitter;
 
     /**
      * Method which provide the getting of the layout ID for the current Activity
@@ -103,35 +97,4 @@ public class MainActivity extends BSActivity {
         BCBeaconManager.stopBeacon();
     }
 
-//    /**
-//     * Instance of the {@link BCBeaconCallback}
-//     */
-//    private final BCBeaconRegionCallback beaconCallback = new BCBeaconRegionCallback() {
-//
-//        /**
-//         * {@link String} value of the beacon identifier
-//         *
-//         * @return {@link String} value of the beacon identifier
-//         */
-//        @NonNull
-//        @Override
-//        public String getBeaconCallbackIdentifier() {
-//            return MainActivity.class.getSimpleName();
-//        }
-//
-//        /**
-//         * Method which provide the action when the beacons found in region
-//         *
-//         * @param region  instance of the {@link Region}
-//         * @param beacons {@link Collections} of the {@link Beacon}
-//         */
-//        @Override
-//        public void onBeaconInsideRegion(@NonNull Region region, @NonNull Collection<Beacon> beacons) {
-//            BSLogHelper.log(MainActivity.this,
-//                    "onBeaconInsideRegion",
-//                    null,
-//                    beacons);
-//        }
-//
-//    };
 }

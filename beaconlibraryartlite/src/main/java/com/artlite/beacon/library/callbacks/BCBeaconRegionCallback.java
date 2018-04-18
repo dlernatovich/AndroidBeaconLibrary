@@ -4,10 +4,11 @@ import android.bluetooth.le.AdvertiseSettings;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import com.artlite.beacon.library.beacon.Beacon;
-import com.artlite.beacon.library.beacon.BeaconParser;
-import com.artlite.beacon.library.beacon.BeaconTransmitter;
-import com.artlite.beacon.library.beacon.Region;
+import org.altbeacon.beacon.Beacon;
+import org.altbeacon.beacon.BeaconParser;
+import org.altbeacon.beacon.BeaconTransmitter;
+import org.altbeacon.beacon.Region;
+
 
 /**
  * Class which provide the short cut of the {@link BCBeaconCallback}
