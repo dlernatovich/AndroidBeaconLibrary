@@ -185,6 +185,8 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
     protected BCBeaconManager(@NonNull Context context) {
         this.contextWeakReference = new WeakReference<>(context);
         this.beaconManager = BeaconManager.getInstanceForApplication(context);
+        // Set up parsers
+        this.beaconManager.getBeaconParsers().clear();
         this.beaconManager.getBeaconParsers().add(new BeaconParser()
                 .setBeaconLayout(BeaconParser.ALTBEACON_LAYOUT));
         this.beaconManager.getBeaconParsers().add(new BeaconParser()
@@ -587,6 +589,10 @@ public class BCBeaconManager implements BeaconConsumer, MonitorNotifier, RangeNo
         try {
             this.beaconManager.startRangingBeaconsInRegion(region);
             this.beaconManager.startMonitoringBeaconsInRegion(region);
+            this.beaconManager.setBackgroundBetweenScanPeriod(5000l);
+            this.beaconManager.setForegroundBetweenScanPeriod(5000l);
+            this.beaconManager.setForegroundScanPeriod(1100l);
+            this.beaconManager.setBackgroundScanPeriod(1100l);
         } catch (Exception ex) {
             Log.e(K_TAG, ex.toString());
         }
