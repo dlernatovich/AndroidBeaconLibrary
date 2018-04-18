@@ -131,3 +131,7 @@ If you want to start the broadcast use this lines:
         BCBeaconManager.startBeacon();
     }
 ```
+
+# Reference
+
+This library based on the [AltBeacon library](https://github.com/AltBeacon/android-beacon-library). This is only simplifying of the library.
