@@ -117,3 +117,17 @@ public class HomeActivity extends BSActivity {
 
 }
 ```
+
+## Start broadcast
+
+If you want to start the broadcast use this lines:
+
+```java
+    /**
+     * Method which provide the beacon starting
+     */
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    protected void startBeacon() {
+        BCBeaconManager.startBeacon();
+    }
+```
