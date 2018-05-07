@@ -42,8 +42,8 @@ dependencies {
 
     // Artlite libraries
     implementation 'com.artlite:sqlib:1.6'
-    implementation 'com.artlite:baseproject:2.2'
-    implementation 'com.artlite:adapteredrecyclerview:1.5'
+    implementation 'com.artlite:baseproject:2.6'
+    implementation 'com.artlite:adapteredrecyclerview:1.6'
     implementation project(path: ':beaconlibraryartlite')
 
 
