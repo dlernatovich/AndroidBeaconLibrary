@@ -87,7 +87,7 @@ public class MainActivity extends BSActivity {
      */
     @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     protected void startBeacon() {
-        BCBeaconManager.startBeacon();
+        BCBeaconManager.startBeacon(100, 100, null);
     }
 
     /**

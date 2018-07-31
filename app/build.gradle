@@ -1,11 +1,13 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 27
+    compileSdkVersion 25
+    buildToolsVersion '27.0.3'
+
     defaultConfig {
         applicationId "com.artlite.beaconlibrary"
         minSdkVersion 16
-        targetSdkVersion 23
+        targetSdkVersion 25
         versionCode 1
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
@@ -41,8 +43,8 @@ dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // Artlite libraries
-    implementation 'com.artlite:sqlib:1.6'
-    implementation 'com.artlite:baseproject:2.6'
+    implementation 'com.artlite:sqlib:2.0.0'
+    implementation 'com.artlite:baseproject:4.0.5'
     implementation 'com.artlite:adapteredrecyclerview:1.6'
     implementation project(path: ':beaconlibraryartlite')
 
